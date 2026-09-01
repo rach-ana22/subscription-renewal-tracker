@@ -1,0 +1,601 @@
+{
+  "name": "Subscription Renewal Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -608,
+        -368
+      ],
+      "id": "8a4782d7-4170-47ea-ab5a-5b469719a421",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "simple": false,
+        "filters": {
+          "q": "renew"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -368,
+        -240
+      ],
+      "id": "4e32408b-b7fc-4a12-a7db-e90b2968a680",
+      "name": "Get many messages",
+      "webhookId": "7656a666-ad86-4cf2-9bd3-184ee64197e0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HQ6VdQKAlguGIko3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "output = []\n\nfor item in _items:\n    data = item[\"json\"]\n\n    # Use the full email text\n    text = data.get(\"text\", \"\")\n    text_lower = text.lower()\n\n    # -------------------------\n    # Detect service\n    # -------------------------\n    if \"netflix\" in text_lower:\n        service = \"Netflix\"\n    elif \"spotify\" in text_lower:\n        service = \"Spotify\"\n    elif \"canva\" in text_lower:\n        service = \"Canva\"\n    elif \"adobe\" in text_lower or \"creative cloud\" in text_lower:\n        service = \"Adobe Creative Cloud\"\n    elif \"youtube\" in text_lower or \"youtube premium\" in text_lower:\n        service = \"YouTube Premium\"\n    elif \"amazon\" in text_lower or \"prime\" in text_lower:\n        service = \"Amazon Prime\"\n    elif \"disney\" in text_lower or \"disney+\" in text_lower:\n        service = \"Disney+\"\n    elif \"microsoft\" in text_lower or \"office 365\" in text_lower:\n        service = \"Microsoft 365\"\n    elif \"chatgpt\" in text_lower or \"openai\" in text_lower:\n        service = \"ChatGPT\"\n    elif \"notion\" in text_lower:\n        service = \"Notion\"\n    else:\n        service = \"Unknown\"\n\n    # -------------------------\n    # Detect currency\n    # -------------------------\n    if \"₹\" in text:\n        currency = \"INR\"\n    elif \"$\" in text:\n        currency = \"USD\"\n    elif \"€\" in text:\n        currency = \"EUR\"\n    elif \"£\" in text:\n        currency = \"GBP\"\n    else:\n        currency = \"UNKNOWN\"\n\n    # -------------------------\n    # Extract amount\n    # -------------------------\n    amount = None\n\n    markers = [\n        \"amount: ₹\",\n        \"amount: $\",\n        \"amount: €\",\n        \"amount: £\",\n        \"amount is ₹\",\n        \"amount is $\",\n        \"amount is €\",\n        \"amount is £\",\n        \"charged ₹\",\n        \"charged $\",\n        \"charged €\",\n        \"charged £\"\n    ]\n\n    for marker in markers:\n        position = text_lower.find(marker)\n\n        if position != -1:\n            start = position + len(marker)\n            number = \"\"\n\n            while start < len(text):\n                char = text[start]\n\n                if char.isdigit() or char in \".,\": \n                    number += char\n                    start += 1\n                else:\n                    break\n\n            if number:\n                amount = float(number.replace(\",\", \"\"))\n                break\n\n    # -------------------------\n    # Extract renewal date\n    # -------------------------\n    renewal_date = None\n\n    date_markers = [\n        \"renewal date:\",\n        \"renew on \",\n        \"renewal on \",\n        \"charged on \"\n    ]\n\n    for marker in date_markers:\n        position = text_lower.find(marker)\n\n        if position != -1:\n            start = position + len(marker)\n            remaining = text[start:]\n\n            renewal_date = remaining.split(\"\\n\")[0].strip()\n            renewal_date = renewal_date.rstrip(\" .\")\n\n            break\n\n    # -------------------------\n    # Extract user's email\n    # -------------------------\n    to_data = data.get(\"to\", \"\")\n    user_email = \"\"\n\n    if isinstance(to_data, str):\n\n        # Example:\n        # Demo <demo@example.com>\n        if \"<\" in to_data and \">\" in to_data:\n            user_email = (\n                to_data.split(\"<\")[1]\n                .split(\">\")[0]\n                .strip()\n            )\n        else:\n            user_email = to_data.strip()\n\n    elif isinstance(to_data, dict):\n\n        values = to_data.get(\"value\", [])\n\n        if values and isinstance(values[0], dict):\n            user_email = values[0].get(\"address\", \"\").strip()\n\n    # -------------------------\n    # Create clean record\n    # -------------------------\n    output.append({\n        \"json\": {\n            \"service\": service,\n            \"amount\": amount,\n            \"currency\": currency,\n            \"renewal_date\": renewal_date,\n            \"source_email_id\": data.get(\"id\"),\n            \"user_email\": user_email\n        }\n    })\n\nreturn output"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -240
+      ],
+      "id": "8bd77814-9281-4c47-a2ba-6bee34ff0e21",
+      "name": "Code in Python"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "service": "={{ $json.service }}",
+            "amount": "={{ $json.amount }}",
+            "currency": "={{ $json.currency }}",
+            "renewal_date": "={{ $json.renewal_date }}",
+            "source_email_id": "={{ $json.source_email_id }}",
+            "user_email": "={{ $json.user_email }}"
+          },
+          "matchingColumns": [
+            "source_email_id"
+          ],
+          "schema": [
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "renewal_date",
+              "displayName": "renewal_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_email_id",
+              "displayName": "source_email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_email",
+              "displayName": "user_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "days_until_renewal",
+              "displayName": "days_until_renewal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -368,
+        48
+      ],
+      "id": "e60e38c9-822f-47f0-a10c-9017b507f106",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "N6lszfIJ2d5TTkfc",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst output = items.map(item => {\n  const data = item.json;\n\n  const renewalDate = new Date(data.renewal_date);\n  const today = new Date();\n\n  // Remove time so we're comparing dates only\n  today.setHours(0, 0, 0, 0);\n  renewalDate.setHours(0, 0, 0, 0);\n\n  const daysUntilRenewal = Math.ceil(\n    (renewalDate - today) / (1000 * 60 * 60 * 24)\n  );\n\n  let status;\n\n  if (daysUntilRenewal < 0) {\n    status = \"Expired\";\n  } else if (daysUntilRenewal === 0) {\n    status = \"Renewing Today\";\n  } else if (daysUntilRenewal <= 7) {\n    status = \"Renewing Soon\";\n  } else if (daysUntilRenewal <= 30) {\n    status = \"Upcoming\";\n  } else {\n    status = \"Later\";\n  }\n\n  return {\n    json: {\n      ...data,\n      user_email: data.user_email || \"\",\n      days_until_renewal: daysUntilRenewal,\n      status: status\n    }\n  };\n});\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        48
+      ],
+      "id": "4b6fe62e-1f31-4457-a3d7-b2f6b35d33f2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo",
+          "mode": "list",
+          "cachedResultName": "Subscription Renewal",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "service": "={{ $json.service }}",
+            "amount": "={{ $json.amount }}",
+            "currency": "={{ $json.currency }}",
+            "renewal_date": "={{ $json.renewal_date }}",
+            "source_email_id": "={{ $json.source_email_id }}",
+            "days_until_renewal": "={{ $json.days_until_renewal }}",
+            "status": "={{ $json.status }}",
+            "user_email": "={{ $json.user_email }}"
+          },
+          "matchingColumns": [
+            "source_email_id"
+          ],
+          "schema": [
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "renewal_date",
+              "displayName": "renewal_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_email_id",
+              "displayName": "source_email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_email",
+              "displayName": "user_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "days_until_renewal",
+              "displayName": "days_until_renewal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "7bf22514-f161-468e-b469-29e69693bc8f",
+      "name": "Append or update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "N6lszfIJ2d5TTkfc",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.days_until_renewal }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    },
+                    "id": "95874e7e-4b74-497a-954a-3fb8dd3ee25a"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2ec97b3e-681f-4484-87cc-b74353817084",
+                    "leftValue": "={{ $json.days_until_renewal }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -112
+      ],
+      "id": "44a4a9b9-b471-4f32-bb0e-a133a20a05fa",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.user_email }}",
+        "subject": "=Your {{ $json.service }} subscription renews in 3 days",
+        "emailType": "text",
+        "message": "=Hi,  This is a reminder that your {{ $json.service }} subscription will renew in 3 days.  Subscription: {{ $json.service }} Amount: {{ $json.amount }} {{ $json.currency }} Renewal date: {{ $json.renewal_date }}  If you want to keep the subscription, no action is needed.  If you no longer use it, consider cancelling it before the renewal date to avoid being charged.  — Subscription Renewal Tracker",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        -304
+      ],
+      "id": "b893808b-f27d-4657-8af1-3fa54bdb9cf1",
+      "name": "Send a message",
+      "webhookId": "13998d38-6ae3-4396-80d6-bbeafcb47989",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HQ6VdQKAlguGIko3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "demo.n8n.acc@gmail.com",
+          "mode": "list",
+          "cachedResultName": "demo.n8n.acc@gmail.com"
+        },
+        "start": "={{ DateTime.fromFormat($json.renewal_date, 'MMMM d, yyyy').set({ hour: 9, minute: 0, second: 0, millisecond: 0 }) }}",
+        "end": "={{ DateTime.fromFormat($json.renewal_date, 'MMMM d, yyyy').set({ hour: 10, minute: 0, second: 0, millisecond: 0 }) }}",
+        "useDefaultReminders": false,
+        "additionalFields": {
+          "description": "=Your {{ $json.service }} subscription renews today.  Amount: {{ $json.amount }} {{ $json.currency }} Renewal date: {{ $json.renewal_date }}  This reminder was created automatically from your renewal email.",
+          "summary": "={{ $json.service }} subscription renews today"
+        },
+        "remindersUi": {
+          "remindersValues": [
+            {
+              "method": "popup"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        -16
+      ],
+      "id": "1f6b4c35-49d9-47cf-aaa0-65a09fa74bc7",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "qTNUWQvSPZpSlocU",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  json: {\n    notification_status: \"SUCCESS\",\n    notification_sent: true,\n    message: \"Workflow completed successfully\",\n    completed_at: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        -160
+      ],
+      "id": "57a89e7b-6cb4-421d-885c-2c646ab1371b",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ee0274a6-68ab-45ed-8f13-037c13c88ba8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e18504472bd0ec3b944a45a17bf16136126106ff28375d6c3e9bea200fd81811"
+  },
+  "nodeGroups": [],
+  "id": "J9ZD796S0Fcmrs4O",
+  "tags": []
+}
