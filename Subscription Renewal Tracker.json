@@ -37,10 +37,9 @@
       ],
       "id": "4e32408b-b7fc-4a12-a7db-e90b2968a680",
       "name": "Get many messages",
-      "webhookId": "7656a666-ad86-4cf2-9bd3-184ee64197e0",
       "credentials": {
         "gmailOAuth2": {
-          "id": "HQ6VdQKAlguGIko3",
+          "id": "ID",
           "name": "Gmail account"
         }
       }
@@ -64,15 +63,14 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit?gid=0#gid=0",
+          "value": "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit?gid=0#gid=0",
           "mode": "url"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit#gid=0"
+          "cachedResultName": "Sheet1"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -184,7 +182,7 @@
       "name": "Append or update row in sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "N6lszfIJ2d5TTkfc",
+          "id": "id",
           "name": "Google Sheets account 2"
         }
       }
@@ -209,15 +207,13 @@
           "__rl": true,
           "value": "1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo",
           "mode": "list",
-          "cachedResultName": "Subscription Renewal",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit?usp=drivesdk"
+          "cachedResultName": "Subscription Renewal"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XVNJ-O3y11-PVa3ZR2ttaZ9wkOyvdzVea0-yxBU2xxo/edit#gid=0"
+          "cachedResultName": "Sheet1"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -331,7 +327,7 @@
       "name": "Append or update row in sheet1",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "N6lszfIJ2d5TTkfc",
+          "id": "id",
           "name": "Google Sheets account 2"
         }
       }
@@ -415,10 +411,9 @@
       ],
       "id": "b893808b-f27d-4657-8af1-3fa54bdb9cf1",
       "name": "Send a message",
-      "webhookId": "13998d38-6ae3-4396-80d6-bbeafcb47989",
       "credentials": {
         "gmailOAuth2": {
-          "id": "HQ6VdQKAlguGIko3",
+          "id": "id",
           "name": "Gmail account"
         }
       }
@@ -427,9 +422,8 @@
       "parameters": {
         "calendar": {
           "__rl": true,
-          "value": "demo.n8n.acc@gmail.com",
-          "mode": "list",
-          "cachedResultName": "demo.n8n.acc@gmail.com"
+          "value": "gmail.com",
+          "mode": "list"
         },
         "start": "={{ DateTime.fromFormat($json.renewal_date, 'MMMM d, yyyy').set({ hour: 9, minute: 0, second: 0, millisecond: 0 }) }}",
         "end": "={{ DateTime.fromFormat($json.renewal_date, 'MMMM d, yyyy').set({ hour: 10, minute: 0, second: 0, millisecond: 0 }) }}",
@@ -456,7 +450,7 @@
       "name": "Create an event",
       "credentials": {
         "googleCalendarOAuth2Api": {
-          "id": "qTNUWQvSPZpSlocU",
+          "id": "id",
           "name": "Google Calendar account"
         }
       }
@@ -585,15 +579,15 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "ee0274a6-68ab-45ed-8f13-037c13c88ba8",
+  "versionId": "id",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "e18504472bd0ec3b944a45a17bf16136126106ff28375d6c3e9bea200fd81811"
+    "instanceId": "id"
   },
   "nodeGroups": [],
   "id": "J9ZD796S0Fcmrs4O",
